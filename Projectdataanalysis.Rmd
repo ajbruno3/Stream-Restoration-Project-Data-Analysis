@@ -11,7 +11,6 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 ```
-#R code is just text - I could share a .r file, but d2l would complain about it because it is unfamiliar with the file type.  Instead, here is the text.  Create a script in R, and past this in.
 
 Load raw Data
 ```{r}
@@ -22,34 +21,101 @@ file_path <- "rawdata.csv"
 streamData <- read.csv(file_path)
 ```
 
+First, lets visualize the data:
+ 
+Lets look at some plots for total N 
 Look at Total N vs. Type
 ```{r}
-boxplot(streamData$Total.N~streamData$Type)
+ggplot(data = streamData, aes(x= Type, y = Total.N)) +
+  stat_boxplot() + 
+  ggtitle("Total N for each treatment")
 ```
-
-#plot of Total N vs. distance
+Plot of Total N vs. distance
 ```{r}
-plot(streamData$Total.N~streamData$Distance)
+ggplot( data = streamData, aes( x = Distance, y = Total.N, color = Type, shape = Type)) + 
+  geom_point() +
+  ggtitle("Total N vs. Distance from Stream Bank") +
+  theme_minimal()
 ```
-
-#fit a linear model using lm(), and the same formula used to make the plot.  Save the lm as 'fit'
+Box plots of Total N for each type at each distance
 ```{r}
-fit=lm(streamData$Total.N[streamData$Type=="CSS"]~streamData$Distance[streamData$Type=="CSS"])
+ggplot(streamData, aes( y = Total.N, fill = Type)) +
+  geom_boxplot() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from stream bank") +
+  theme(axis.text.x = element_blank()) +
+  ggtitle("Total N concentrations at Each Distance")
+ 
 ```
 
-#add the fitted line to the plot using the lm object 'fit'
+
+
+
+
+Inorganic N for each Treatment
 ```{r}
-plot(streamData$Total.N~streamData$Distance)
-abline(fit)
+ggplot(data = streamData, aes(x= Type, y = Inorg.N)) +
+  stat_boxplot() + 
+  ggtitle("Inorganic N for each treatment")
+```
+
+Plot of Inorganic N vs distance colored by treatment type
+```{r}
+ggplot( data = streamData, aes( x = Distance, y = Inorg.N, color = Type)) + 
+  geom_point() +
+  ggtitle("Inorganic N vs. Distance from Stream Bank")
+```
+
+```{r}
+ggplot(streamData, aes( y = Inorg.N, fill = Type)) +
+  geom_boxplot() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from stream bank") +
+  theme(axis.text.x = element_blank()) +
+  ggtitle("Inorganic N concentrations at Each Distance")
+```
+
+Compare CSS Total N with No CSS Total N 
+Create function to calculate and store resampled differences
+```{r}
+resampled_diff <- function(thisStreamData) {
+  # Resample the response variable with replace = TRUE
+  thisStreamData$resampledResponse <- sample(thisStreamData$Total.N, replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampledResponse)
+  
+  # Calculate the sum of Total N for each treatment type in the resampled data
+  summed_data <- resampled_data %>%
+    group_by(Type) %>%
+    summarize(tot_n = sum(resampledResponse))
+  
+  # Calculate the difference in total N for each treatment type
+  diff_data <- summed_data %>%
+    mutate(tot_n_diff = diff(tot_n))
+  
+  return(diff_data$tot_n_diff[1])
+}
+
+# Replicate the function and store the differences
+num_replications <- 1000  # Change this to the desired number of replications
+
+resampled_differences <- replicate(num_replications, resampled_diff(streamData))
+
+```
+
+Create distribution of Tot N differences
+```{r}
+hist(resampled_differences)
+```
+Find Probablility of difference greater than or equal too observed_diff
+```{r}
+observed_diff <- 120
+mean(resampled_differences > observed_diff)
 ```
 
 
-#function for resampling and fitting the data
-#this function needs only one input, the dataframe that will be resampled and fitted.
-#the function will resample the data, fit a lm, and then return the coefficient.
-#This function is not actually run here, it is just defined.  It is run with replicate() below.
-#It is best for the dataframe to have a different name inside the dataframe than it does elsewhere
-#we define this name in the () in the function definition:
+function for resampling and fitting the dat
 ```{r}
 resampleAndFit=function(thisStreamData){
   #within the function, streamData does not exist, but thisStreamData does
@@ -72,7 +138,7 @@ resampleAndFit=function(thisStreamData){
 
 #run the command 'resampleAndFit(streamData)' 1000 times, and save the output as resampledSlopes
 ```{r}
-resampledSlopes=replicate(10,resampleAndFit(streamData))
+resampledSlopes=replicate(100,resampleAndFit(streamData))
 ```
 
 #is 1000 enough?  test by running a few times and seeing if the p value changes
@@ -106,5 +172,5 @@ mean(resampledSlopes)
 
 #therefore, this value is the p value:
 ```{r}
-mean(resampledSlopes>fit$coefficients[2])
+mean(resampledSlopes> 0.2)
 ```
