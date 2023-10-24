@@ -1,0 +1,110 @@
+---
+title: "Project Data Analysis"
+author: "Anthony Bruno"
+date: "2023-10-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+#R code is just text - I could share a .r file, but d2l would complain about it because it is unfamiliar with the file type.  Instead, here is the text.  Create a script in R, and past this in.
+
+Load raw Data
+```{r}
+# Specify the file path to your CSV file
+file_path <- "rawdata.csv"
+
+# Read the CSV file and create a data frame
+streamData <- read.csv(file_path)
+```
+
+Look at Total N vs. Type
+```{r}
+boxplot(streamData$Total.N~streamData$Type)
+```
+
+#plot of Total N vs. distance
+```{r}
+plot(streamData$Total.N~streamData$Distance)
+```
+
+#fit a linear model using lm(), and the same formula used to make the plot.  Save the lm as 'fit'
+```{r}
+fit=lm(streamData$Total.N[streamData$Type=="CSS"]~streamData$Distance[streamData$Type=="CSS"])
+```
+
+#add the fitted line to the plot using the lm object 'fit'
+```{r}
+plot(streamData$Total.N~streamData$Distance)
+abline(fit)
+```
+
+
+#function for resampling and fitting the data
+#this function needs only one input, the dataframe that will be resampled and fitted.
+#the function will resample the data, fit a lm, and then return the coefficient.
+#This function is not actually run here, it is just defined.  It is run with replicate() below.
+#It is best for the dataframe to have a different name inside the dataframe than it does elsewhere
+#we define this name in the () in the function definition:
+```{r}
+resampleAndFit=function(thisStreamData){
+  #within the function, streamData does not exist, but thisStreamData does
+  
+  #resample the response variable with replace = true
+  thisStreamData$resampledResponse=sample(thisStreamData$Total.N,replace=T)
+  
+  #fit a lm to the resampled dataset, save it as resampleFit
+  resampleFit=lm(thisStreamData$resampledResponse~thisStreamData$Distance)
+  
+  #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
+  #points(resampledResponse~thisStreamData$Distance,pch=2)
+  #abline(resampleFit)
+  
+  #return the slope coefficient
+ return(resampleFit$coefficients[[2]])
+}
+
+```
+
+#run the command 'resampleAndFit(streamData)' 1000 times, and save the output as resampledSlopes
+```{r}
+resampledSlopes=replicate(10,resampleAndFit(streamData))
+```
+
+#is 1000 enough?  test by running a few times and seeing if the p value changes
+
+#take a look at the distribution of the resampled slopes:
+
+```{r}
+hist(resampledSlopes)
+```
+
+#remember that in all the resampled data, there is no meaningful relationship between the x and y variables.
+#therefore, the mean of the resampledSlopes should be close to 0.  If it's not, something is wrong
+
+```{r}
+mean(resampledSlopes)
+```
+
+
+#A p value as the probability that a pattern (e.g., slope) equivalent to 
+# or more extreme than the observed pattern would occur if in fact there was no meaningful relationship.
+
+
+# In this example, we are predicting a positive correlation (a positive slope).
+# Therefore, we want to ask what proportion of the population of slopes fitted to the
+# randomly resampled dataset are GREATER THAN the observed slope in the actual data
+# the '>' operator asks weather resampledSlopes is greater than the actual fitted coefficient
+# this returns a set of TRUE or FALSE values:
+# TRUE where the resampled slope is greater than the slope of the actual data,
+# and FALSE where the resampled slope is less than the slope of the actual data,
+# R can also think of TRUE and FALSE as 1 and 0, thus the mean of the T/F set is the proportion of TRUEs
+
+#therefore, this value is the p value:
+```{r}
+mean(resampledSlopes>fit$coefficients[2])
+```
