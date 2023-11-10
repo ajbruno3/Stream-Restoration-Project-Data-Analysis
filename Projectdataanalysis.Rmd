@@ -21,16 +21,17 @@ file_path <- "rawdata.csv"
 streamData <- read.csv(file_path)
 ```
 
-First, lets visualize the data:
+Visualize the data:
  
-Lets look at some plots for total N 
-Look at Total N vs. Type
+Look at Total N First:
+
+Look at Total N vs. Treatment Type
 ```{r}
 ggplot(data = streamData, aes(x= Type, y = Total.N)) +
   stat_boxplot() + 
   ggtitle("Total N for each treatment")
 ```
-Plot of Total N vs. distance
+Plot of Total N vs. Distance from Stream Bank
 ```{r}
 ggplot( data = streamData, aes( x = Distance, y = Total.N, color = Type, shape = Type)) + 
   geom_point() +
@@ -47,12 +48,9 @@ ggplot(streamData, aes( y = Total.N, fill = Type)) +
   ggtitle("Total N concentrations at Each Distance")
  
 ```
+Now look at Inorganic N:
 
-
-
-
-
-Inorganic N for each Treatment
+Total Inorganic N concentrations for each Treatment Type
 ```{r}
 ggplot(data = streamData, aes(x= Type, y = Inorg.N)) +
   stat_boxplot() + 
@@ -65,7 +63,7 @@ ggplot( data = streamData, aes( x = Distance, y = Inorg.N, color = Type)) +
   geom_point() +
   ggtitle("Inorganic N vs. Distance from Stream Bank")
 ```
-
+Box plot of Inorganic N vs Treatment type at each distance
 ```{r}
 ggplot(streamData, aes( y = Inorg.N, fill = Type)) +
   geom_boxplot() +
@@ -74,8 +72,10 @@ ggplot(streamData, aes( y = Inorg.N, fill = Type)) +
   theme(axis.text.x = element_blank()) +
   ggtitle("Inorganic N concentrations at Each Distance")
 ```
+Now lets do some Bootstrapping Statistics:
 
-Compare CSS Total N with No CSS Total N 
+Compare Total N Concentration for CSS vs non-CSS:
+
 Create function to calculate and store resampled differences
 ```{r}
 resampled_diff <- function(thisStreamData) {
@@ -104,7 +104,7 @@ resampled_differences <- replicate(num_replications, resampled_diff(streamData))
 
 ```
 
-Create distribution of Tot N differences
+Create distribution of Tot N differences (should be approximately normal)
 ```{r}
 hist(resampled_differences)
 ```
@@ -114,63 +114,165 @@ observed_diff <- 120
 mean(resampled_differences > observed_diff)
 ```
 
+Look at the probability that there is a linear relationship between all TOTAL NITROGEN samples with respect to DISTANCE from stream bank:
 
-function for resampling and fitting the dat
+Function for resampling and fitting a linear relationship to the data
 ```{r}
-resampleAndFit=function(thisStreamData){
+resampleAndFit_totn_dist=function(thisStreamData){
   #within the function, streamData does not exist, but thisStreamData does
   
   #resample the response variable with replace = true
   thisStreamData$resampledResponse=sample(thisStreamData$Total.N,replace=T)
   
   #fit a lm to the resampled dataset, save it as resampleFit
-  resampleFit=lm(thisStreamData$resampledResponse~thisStreamData$Distance)
+  resampleFit_totn_dist=lm(thisStreamData$resampledResponse~thisStreamData$Distance)
   
   #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
   #points(resampledResponse~thisStreamData$Distance,pch=2)
   #abline(resampleFit)
   
   #return the slope coefficient
- return(resampleFit$coefficients[[2]])
+ return(resampleFit_totn_dist$coefficients[[2]])
 }
 
 ```
 
-#run the command 'resampleAndFit(streamData)' 1000 times, and save the output as resampledSlopes
+Resample the random slopes XXX times
 ```{r}
-resampledSlopes=replicate(100,resampleAndFit(streamData))
+resampledSlopes_totn_dist=replicate(100,resampleAndFit_totn_dist(streamData))
 ```
 
-#is 1000 enough?  test by running a few times and seeing if the p value changes
-
-#take a look at the distribution of the resampled slopes:
-
+Look at the distribution of the resampled slopes:
 ```{r}
-hist(resampledSlopes)
+hist(resampledSlopes_totn_dist)
 ```
 
-#remember that in all the resampled data, there is no meaningful relationship between the x and y variables.
-#therefore, the mean of the resampledSlopes should be close to 0.  If it's not, something is wrong
-
+Check that the resampledSlopes are close to 0.If it's not, something is wrong
 ```{r}
-mean(resampledSlopes)
+mean(resampledSlopes_totn_dist)
+```
+
+P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
+```{r}
+mean(resampledSlopes_totn_dist> 0.2)
+```
+
+Look at the probability that there is a linear relationship between all Inorganic Nitrogen samples with respect to DISTANCE from stream bank:
+
+Function for resampling and fitting a linear relationship to the data
+```{r}
+resampleAndFit_inorgn_dist=function(thisStreamData){
+  #within the function, streamData does not exist, but thisStreamData does
+  
+  #resample the response variable with replace = true
+  thisStreamData$resampledResponse=sample(thisStreamData$Inorg.N,replace=T)
+  
+  #fit a lm to the resampled dataset, save it as resampleFit
+  resampleFit_inorgn_dist=lm(thisStreamData$resampledResponse~thisStreamData$Distance)
+  
+  #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
+  #points(resampledResponse~thisStreamData$Distance,pch=2)
+  #abline(resampleFit)
+  
+  #return the slope coefficient
+ return(resampleFit_inorgn_dist$coefficients[[2]])
+}
+
+```
+
+Resample the random slopes XXX times
+```{r}
+resampledSlopes_inorgn_dist=replicate(100,resampleAndFit_inorgn_dist(streamData))
+```
+
+Look at the distribution of the resampled slopes:
+```{r}
+hist(resampledSlopes_inorgn_dist)
+```
+Check that the resampledSlopes are close to 0.If it's not, something is wrong
+```{r}
+mean(resampledSlopes_inorgn_dist)
+```
+
+P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
+```{r}
+mean(resampledSlopes_inorgn_dist> 0.2)
 ```
 
 
-#A p value as the probability that a pattern (e.g., slope) equivalent to 
-# or more extreme than the observed pattern would occur if in fact there was no meaningful relationship.
+Look at the probability that there is a linear relationship between all Total Nitrogen samples with resepect to Relative Elevation above the WSE:
 
-
-# In this example, we are predicting a positive correlation (a positive slope).
-# Therefore, we want to ask what proportion of the population of slopes fitted to the
-# randomly resampled dataset are GREATER THAN the observed slope in the actual data
-# the '>' operator asks weather resampledSlopes is greater than the actual fitted coefficient
-# this returns a set of TRUE or FALSE values:
-# TRUE where the resampled slope is greater than the slope of the actual data,
-# and FALSE where the resampled slope is less than the slope of the actual data,
-# R can also think of TRUE and FALSE as 1 and 0, thus the mean of the T/F set is the proportion of TRUEs
-
-#therefore, this value is the p value:
+function for resampling and fitting the data
 ```{r}
-mean(resampledSlopes> 0.2)
+resampleAndFit_totn_Elev=function(thisStreamData){
+  #within the function, streamData does not exist, but thisStreamData does
+  
+  #resample the response variable with replace = true
+  thisStreamData$resampledResponse=sample(thisStreamData$Total.N,replace=T)
+  
+  #fit a lm to the resampled dataset, save it as resampleFit
+  resampleFit_totn_Elev=lm(thisStreamData$resampledResponse~thisStreamData$Relative.Elev.)
+  
+  #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
+  #points(resampledResponse~thisStreamData$Distance,pch=2)
+  #abline(resampleFit)
+  
+  #return the slope coefficient
+ return(resampleFit_totn_Elev$coefficients[[2]])
+}
+
+```
+
+```{r}
+resampledSlopes_totn_Elev=replicate(100,resampleAndFit_totn_Elev(streamData))
+```
+
+```{r}
+hist(resampledSlopes_totn_Elev)
+```
+
+```{r}
+mean(resampledSlopes_totn_Elev)
+```
+Find Probability of linear realation btw nutrients and elevation with a slipe of XXX
+```{r}
+mean(resampledSlopes_totn_Elev> 0.2)
+```
+
+Look at the probability that there is a linear relationship between all Inorganic Nitrogen samples with respect to Relative Elevation above the WSE:
+
+function for resampling and fitting the data
+```{r}
+resampleAndFit_inorgn_Elev=function(thisStreamData){
+  #within the function, streamData does not exist, but thisStreamData does
+  
+  #resample the response variable with replace = true
+  thisStreamData$resampledResponse=sample(thisStreamData$Inorg.N,replace=T)
+  
+  #fit a lm to the resampled dataset, save it as resampleFit
+  resampleFit_inorgn_Elev=lm(thisStreamData$resampledResponse~thisStreamData$Relative.Elev.)
+  
+  #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
+  #points(resampledResponse~thisStreamData$Distance,pch=2)
+  #abline(resampleFit)
+  
+  #return the slope coefficient
+ return(resampleFit_inorgn_Elev$coefficients[[2]])
+}
+
+```
+
+```{r}
+resampledSlopes_inorgn_Elev=replicate(100,resampleAndFit_inorgn_Elev(streamData))
+```
+
+```{r}
+hist(resampledSlopes_inorgn_Elev)
+```
+
+```{r}
+mean(resampledSlopes_inorgn_Elev)
+```
+```{r}
+mean(resampledSlopes_inorgn_Elev> 0.2)
 ```
