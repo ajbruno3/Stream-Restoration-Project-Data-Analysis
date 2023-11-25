@@ -147,7 +147,7 @@ Look at the distribution of the resampled slopes:
 hist(resampledSlopes_totn_dist)
 ```
 
-Check that the resampledSlopes are close to 0.If it's not, something is wrong
+Check that the resampledSlopes are close to 0.I f it's not, something is wrong
 ```{r}
 mean(resampledSlopes_totn_dist)
 ```
@@ -275,4 +275,50 @@ mean(resampledSlopes_inorgn_Elev)
 ```
 ```{r}
 mean(resampledSlopes_inorgn_Elev> 0.2)
+```
+
+
+Look at the probability that there is a difference between the average elevation above the Thalweg for the two treatments:
+```{r}
+resampled_avgelev_diff <- function(thisStreamData) {
+ 
+    # Resample the response variable with replace = TRUE
+  thisStreamData$resampled_elev <- sample(thisStreamData$Relative.Elev., replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_elev_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_elev)
+  
+  # Calculate the average elevation above the WSE for each treatment type in the resampled data
+  summed_data <- resampled_elev_data %>%
+    group_by(Type) %>%
+    summarize(avg_elev = mean(resampledResponse))
+  
+  # Calculate the difference in average elevation for each treatment type
+  diff_data <- summed_data %>%
+    mutate(avg_elev_diff = (diff(avg_elev)))  # added a default value for the first difference
+  
+  return(diff_data$avg_elev_diff[1])
+}
+# Replicate the function and store the differences
+num_replications <- 10000  # Change this to the desired number of replications
+
+resampled_elev_differences <- replicate(num_replications, resampled_avgelev_diff(streamData))
+```
+
+Create distribution of Average Elev. Differences (should be approximately normal)
+```{r}
+hist(resampled_elev_differences)
+```
+
+Find Probability of differences greater than or equal too observed_elev_diff
+```{r}
+observed_elev_diff <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_elev = mean(Relative.Elev.)) %>%
+  summarize(observed_elev_diff = diff(avg_elev))
+
+message("The observed average elevation difference between the thalweg and soil sample locations for transects with channel spanning structures vs. without is ", observed_elev_diff$observed_elev_diff, " feet")
+
+mean(resampled_elev_differences > observed_elev_diff$observed_elev_diff)
+
 ```
