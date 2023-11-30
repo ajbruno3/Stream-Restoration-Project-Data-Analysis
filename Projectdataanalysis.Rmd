@@ -72,7 +72,21 @@ ggplot(streamData, aes( y = Inorg.N, fill = Type)) +
   theme(axis.text.x = element_blank()) +
   ggtitle("Inorganic N concentrations at Each Distance")
 ```
-Now lets do some Bootstrapping Statistics:
+Box plot of Elevation vs. Treatment type at each distance
+```{r}
+ggplot(streamData, aes( y = Relative.Elev., fill = Type)) +
+  geom_boxplot() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from stream bank") +
+  theme(axis.text.x = element_blank()) +
+  ggtitle("Sample Elevations vs. Each Distance")
+
+ggplot(streamData, aes( x= Distance, y = Relative.Elev., color = Type)) +
+geom_point() +
+ggtitle("Relative Elevation vs. Distance from Stream Bank")
+```
+
+Bootstrapping Statistics:
 
 Compare Total N Concentration for CSS vs non-CSS:
 
@@ -317,8 +331,52 @@ observed_elev_diff <- streamData %>%
   summarize(avg_elev = mean(Relative.Elev.)) %>%
   summarize(observed_elev_diff = diff(avg_elev))
 
-message("The observed average elevation difference between the thalweg and soil sample locations for transects with channel spanning structures vs. without is ", observed_elev_diff$observed_elev_diff, " feet")
+P_avg_elev_diff <- mean(resampled_elev_differences > observed_elev_diff$observed_elev_diff)
 
-mean(resampled_elev_differences > observed_elev_diff$observed_elev_diff)
+message("The average relative elevation of surveyed locations without channel spanning structures is ", observed_elev_diff$observed_elev_diff, " feet higher than the average relative elevation of surveyed locations with channel spanning structures. Bootstrapping analysis yielded a low P-value of " , P_avg_elev_diff,  " showing that this observed difference is statistically significant.")
+
+Avg_elev <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_elev = mean(Relative.Elev.)) 
+```
+Find Probability of differences greater than or equal too observed_elev_diff for specific distances
+```{r}
+#Specify distance as inc
+inc <- 7.5
+
+resampled_dist_elev_diff <- function(thisStreamData) {
+ thisStreamData %>% 
+    filter(Distance == inc)
+  
+    # Resample the response variable with replace = TRUE
+  thisStreamData$resampled_elev <- sample(thisStreamData$Relative.Elev., replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_elev_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_elev)
+  
+  # Calculate the average elevation above the WSE for each treatment type in the resampled data
+  summed_data <- resampled_elev_data %>%
+    group_by(Type) %>%
+    summarize(avg_elev = mean(resampledResponse))
+  
+  # Calculate the difference in average elevation for each treatment type
+  diff_data <- summed_data %>%
+    mutate(avg_elev_diff = (diff(avg_elev)))  
+  
+  return(diff_data$avg_elev_diff[1])
+}
+# Replicate the function and store the differences
+num_replications <- 1000  # Change this to the desired number of replications
+
+resampled_single_elev_diff <- replicate(num_replications, resampled_dist_elev_diff(streamData))
+
+#Find Probability of differences greater than or equal too observed_single_elev_diff
+observed_single_elev_diff <- streamData %>%
+  filter(Distance == inc) %>%
+  group_by(Type) %>%
+  summarize(avg_elev = mean(Relative.Elev.)) %>%
+  summarize(observed_diff = diff(avg_elev))
+
+P_avg_single_elev_diff <- mean(resampled_single_elev_diff > observed_single_elev_diff$observed_diff)
 
 ```
