@@ -24,85 +24,121 @@ streamData <- read.csv(file_path)
 Visualize the data:
  
 Look at Total N First:
-
-Look at Total N vs. Treatment Type
 ```{r}
+#Look at Total N vs. Treatment Type
 ggplot(data = streamData, aes(x= Type, y = Total.N)) +
   stat_boxplot() + 
-  ggtitle("Total N for each treatment")
-```
-Plot of Total N vs. Distance from Stream Bank
-```{r}
+  ggtitle("Total N for each treatment") 
+
+#Plot of Total N vs. Distance from Stream Bank
 ggplot( data = streamData, aes( x = Distance, y = Total.N, color = Type, shape = Type)) + 
   geom_point() +
   ggtitle("Total N vs. Distance from Stream Bank") +
   theme_minimal()
-```
-Box plots of Total N for each type at each distance
-```{r}
-ggplot(streamData, aes( y = Total.N, fill = Type)) +
+
+#Box plots of Total N for each type at each distance
+ggplot(streamData, aes( y = Total.N, fill = Type )) +
   geom_boxplot() +
   facet_wrap(~ Distance, nrow = 1) +
   labs( x = "Distance from stream bank") +
   theme(axis.text.x = element_blank()) +
-  ggtitle("Total N concentrations at Each Distance")
- 
-```
-Now look at Inorganic N:
+  ggtitle("Total N concentrations at Each Distance") + 
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
 
-Total Inorganic N concentrations for each Treatment Type
+#Violin plots of Total N for each type at each distance
+ggplot(streamData, aes( x = Distance, y = Total.N, fill = Type)) +
+  geom_violin() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from Stream Bank", y = "Total N Concentration [mg/L]") +
+ theme(axis.text.x = element_blank()) +
+  ggtitle("Total N concentrations at Each Sampling Distance") +
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
+```
+
+Visualize Total C data:
+
 ```{r}
-ggplot(data = streamData, aes(x= Type, y = Inorg.N)) +
+#Total C concentrations for each Treatment Type
+ggplot(data = streamData, aes(x= Type, y = Total.C)) +
   stat_boxplot() + 
-  ggtitle("Inorganic N for each treatment")
-```
+  ggtitle("Total C for each treatment")
 
-Plot of Inorganic N vs distance colored by treatment type
-```{r}
-ggplot( data = streamData, aes( x = Distance, y = Inorg.N, color = Type)) + 
+#Plot of Inorganic N vs distance colored by treatment type
+ggplot( data = streamData, aes( x = Distance, y = Total.C, color = Type)) + 
   geom_point() +
-  ggtitle("Inorganic N vs. Distance from Stream Bank")
-```
-Box plot of Inorganic N vs Treatment type at each distance
-```{r}
-ggplot(streamData, aes( y = Inorg.N, fill = Type)) +
+  ggtitle("Total C vs. Distance from Stream Bank")
+
+#Box plot of Inorganic N vs Treatment type at each distance
+ggplot(streamData, aes( y = Total.C, fill = Type)) +
   geom_boxplot() +
   facet_wrap(~ Distance, nrow = 1) +
   labs( x = "Distance from stream bank") +
   theme(axis.text.x = element_blank()) +
-  ggtitle("Inorganic N concentrations at Each Distance")
+  ggtitle("Total C concentrations at Each Sampling Distance") +
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
+
+#Violin plots of Total N for each type at each distance
+ggplot(streamData, aes( x = Distance, y = Total.C, fill = Type)) +
+  geom_violin() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from Stream Bank", y = "Inorganic N Concentration [mg/L]") +
+ theme(axis.text.x = element_blank()) +
+  ggtitle("Total C concentrations at Each Sampling Distance") +
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
 ```
-Box plot of Elevation vs. Treatment type at each distance
+Visualize Elevation Data
+
 ```{r}
+#Relative Elevation for each Treatment Type
+ggplot(data = streamData, aes(x= Type, y = Relative.Elev.)) +
+  stat_boxplot() + 
+  ggtitle("Total C for each treatment")
+
+#Plot Elevation points
+ggplot(streamData, aes( x= Distance, y = Relative.Elev., color = Type)) +
+geom_point() +
+ggtitle("Relative Elevation vs. Distance from Stream Bank")
+
+#Box plot of Elevation vs. Treatment type at each distance
 ggplot(streamData, aes( y = Relative.Elev., fill = Type)) +
   geom_boxplot() +
   facet_wrap(~ Distance, nrow = 1) +
   labs( x = "Distance from stream bank") +
   theme(axis.text.x = element_blank()) +
-  ggtitle("Sample Elevations vs. Each Distance")
+  ggtitle("Sample Elevations vs. Each Distance") + 
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
 
-ggplot(streamData, aes( x= Distance, y = Relative.Elev., color = Type)) +
-geom_point() +
-ggtitle("Relative Elevation vs. Distance from Stream Bank")
+ggplot(streamData, aes( x = Distance, y = Relative.Elev., fill = Type)) +
+  geom_violin() +
+  facet_wrap(~ Distance, nrow = 1) +
+  labs( x = "Distance from Stream Bank") +
+  theme(axis.text.x = element_blank()) +
+  ggtitle("Sample Elevations vs. Each Distance") + 
+  scale_fill_manual(values = c("CSS" = "red", "No CSS" = "blue"))
 ```
 
 Bootstrapping Statistics:
+
+Set the number of resampling replications for each test
+```{r}
+num_replications <- 100  # Change this to the desired number of replications
+```
 
 Compare Total N Concentration for CSS vs non-CSS:
 
 Create function to calculate and store resampled differences
 ```{r}
-resampled_diff <- function(thisStreamData) {
+resampled_tn_differences <- function(thisStreamData) {
   # Resample the response variable with replace = TRUE
   thisStreamData$resampledResponse <- sample(thisStreamData$Total.N, replace = TRUE)
   
   # Create a new data frame to store the resampled results
   resampled_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampledResponse)
   
-  # Calculate the sum of Total N for each treatment type in the resampled data
+  # Calculate the Average Total N for each treatment type in the resampled data
   summed_data <- resampled_data %>%
     group_by(Type) %>%
-    summarize(tot_n = sum(resampledResponse))
+    summarize(tot_n = mean(resampledResponse))
   
   # Calculate the difference in total N for each treatment type
   diff_data <- summed_data %>%
@@ -111,21 +147,69 @@ resampled_diff <- function(thisStreamData) {
   return(diff_data$tot_n_diff[1])
 }
 
-# Replicate the function and store the differences
-num_replications <- 1000  # Change this to the desired number of replications
+#replicate and store differences
+resampled_tn_diff <- replicate(num_replications, resampled_tn_differences(streamData))
 
-resampled_differences <- replicate(num_replications, resampled_diff(streamData))
+#Calculate the observed difference
+observed_tn_diff <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_tn = mean(Total.N)) %>%
+  summarize(observed_diff = diff(avg_tn))
+#Calculate the p-value of observed TN diff > resampled differences for total nitrogen concentration among all samples
+P_tn_diff <- mean(resampled_tn_diff > observed_tn_diff$observed_diff)
 
+message("The average Total Nitrogen concentrations from CSS samples is", observed_tn_diff$observed_diff, " [mg/L] higher/lower than the Total Nitrogen Concentrations from NCSS samples. Bootstrapping analysis P-value of " , P_tn_diff)
 ```
 
 Create distribution of Tot N differences (should be approximately normal)
 ```{r}
-hist(resampled_differences)
+hist(resampled_tn_diff)
 ```
-Find Probablility of difference greater than or equal too observed_diff
+
+Analyze the difference between TN concentrations at a single sampling distance and check the significance of the observed difference
 ```{r}
-observed_diff <- 120
-mean(resampled_differences > observed_diff)
+#Specify distance as dist
+dist_n <- 2.5
+
+resampled_tn_dist_difference <- function(thisStreamData) {
+ thisStreamData %>% 
+    filter(Distance == dist_n)
+  
+    # Resample the response variable with replace = TRUE
+  thisStreamData$resampled_tn <- sample(thisStreamData$Total.N, replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_tn_inc <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_tn)
+  
+  # Calculate the average elevation above the WSE for each treatment type in the resampled data
+  summed_data <- resampled_tn_inc %>%
+    group_by(Type) %>%
+    summarize(avg_tn = mean(resampledResponse))
+  
+  # Calculate the difference in average elevation for each treatment type
+  diff_data <- summed_data %>%
+    mutate(avg_tn_diff = (diff(avg_tn)))  
+  
+  return(diff_data$avg_tn_diff[1])
+}
+
+#Replicate and store differences
+resampled_tn_dist_diff <- replicate(num_replications, resampled_tn_dist_difference(streamData))
+
+#Find Probability of differences greater than or equal too observed_tn_inc_diff
+observed_tn_dist_diff <- streamData %>%
+  filter(Distance == dist_n) %>%
+  group_by(Type) %>%
+  summarize(avg_tn = mean(Total.N)) %>%
+  summarize(observed_diff = diff(avg_tn))
+
+P_tn_dist_diff <- mean(resampled_tn_dist_diff > observed_tn_dist_diff$observed_diff)
+
+message("The difference of the sum of Total Nitrogen concentrations at a sample distance of ", dist_n," feet is ", observed_tn_dist_diff$observed_diff," [mg/L]. Bootstrapping analysis yielded a P-value of ", P_tn_dist_diff)
+```
+
+```{r}
+hist(resampled_tn_dist_diff)
 ```
 
 Look at the probability that there is a linear relationship between all TOTAL NITROGEN samples with respect to DISTANCE from stream bank:
@@ -149,11 +233,22 @@ resampleAndFit_totn_dist=function(thisStreamData){
  return(resampleFit_totn_dist$coefficients[[2]])
 }
 
-```
+#Resample the random slopes XXX times
+resampledSlopes_totn_dist=replicate(num_replications,resampleAndFit_totn_dist(streamData))
 
-Resample the random slopes XXX times
-```{r}
-resampledSlopes_totn_dist=replicate(100,resampleAndFit_totn_dist(streamData))
+#Calculate observed slope
+observedFit_totn_dist=lm(streamData$Total.N~streamData$Distance)
+
+#P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
+
+P_tn_slope_dist <- mean(resampledSlopes_totn_dist> observedFit_totn_dist$coefficients[[2]])
+
+message("A linear fit of Total Nitrogen vs. Distance from the wetted bank yielded a slope of ", observedFit_totn_dist$coefficients[[2]]," mg/L/ft. Bootstrapping analysis yielded a P-value of ", P_tn_slope_dist," that the slope is greater than or equal to the observed slope.")
+
+#plot linear fit
+ggplot(streamData, aes(x= Distance, y = Total.N, color = Type)) +
+  geom_point() + 
+  geom_smooth(method = 'lm')
 ```
 
 Look at the distribution of the resampled slopes:
@@ -161,17 +256,89 @@ Look at the distribution of the resampled slopes:
 hist(resampledSlopes_totn_dist)
 ```
 
-Check that the resampledSlopes are close to 0.I f it's not, something is wrong
+Analyze Total C Data:
+
+Create function to calculate and store Total C resampled differences
 ```{r}
-mean(resampledSlopes_totn_dist)
+resampled_tc_diff <- function(thisStreamData) {
+  # Resample the response variable with replace = TRUE
+  thisStreamData$resampledResponse <- sample(thisStreamData$Total.C, replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampledResponse)
+  
+  # Calculate the Average Total C for each treatment type in the resampled data
+  summed_data <- resampled_data %>%
+    group_by(Type) %>%
+    summarize(tot_c = mean(resampledResponse))
+  
+  # Calculate the difference in total N for each treatment type
+  diff_data <- summed_data %>%
+    mutate(tot_c_diff = diff(tot_c))
+  
+  return(diff_data$tot_c_diff[1])
+}
+
+#replicate and store differences
+resampled_tc_diff <- replicate(num_replications, resampled_tc_diff(streamData))
+
+#Calculate the observed difference
+observed_tc_diff <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_tc = mean(Total.C)) %>%
+  summarize(observed_diff = diff(avg_tc))
+
+#Calculate the p-value of observed TC diff > resampled differences for Total Carbon concentration among all samples
+P_tc_diff <- mean(resampled_tc_diff > observed_tc_diff$observed_diff)
+
+message("The sum of the Total carbon concentrations from CSS samples is ", observed_tc_diff$observed_diff, " is [mg/L] higher/lower than the Total Carbon concentrations from NCSS samples. Bootstrapping analysis yielded a P-value of ", P_tc_diff)
+
 ```
 
-P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
+Analyze the difference between TC concentrations at a single sampling distance and check the significance of the observed difference
 ```{r}
-mean(resampledSlopes_totn_dist> 0.2)
+#Specify distance as dist_c
+dist_c <- 2.5
+
+resampled_tc_dist_difference <- function(thisStreamData) {
+ thisStreamData %>% 
+    filter(Distance == dist_c)
+  
+    # Resample the response variable with replace = TRUE
+  thisStreamData$resampled_tc <- sample(thisStreamData$Total.C, replace = TRUE)
+  
+  # Create a new data frame to store the resampled results
+  resampled_tc_inc <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_tc)
+  
+  # Calculate the average elevation above the WSE for each treatment type in the resampled data
+  summed_data <- resampled_tc_inc %>%
+    group_by(Type) %>%
+    summarize(avg_tc = mean(resampledResponse))
+  
+  # Calculate the difference in average elevation for each treatment type
+  diff_data <- summed_data %>%
+    mutate(avg_tc_diff = (diff(avg_tc)))  
+  
+  return(diff_data$avg_tc_diff[1])
+}
+
+#Replicate and store differences
+resampled_tc_dist_diff <- replicate(num_replications, resampled_tc_dist_difference(streamData))
+
+#Find the difference between TC at CSS vs. NCSS sites at distance = dist
+observed_tc_dist_diff <- streamData %>%
+  filter(Distance == dist_c) %>%
+  group_by(Type) %>%
+  summarize(avg_tc = mean(Total.C)) %>%
+  summarize(observed_diff = diff(avg_tc))
+
+#Find Probability of differences greater than or equal too observed_tn_inc_diff
+P_tc_dist_diff <- mean(resampled_tc_dist_diff > observed_tc_dist_diff$observed_diff)
+
+message("The difference of the sum of Total Carbon concentrations at a sample distance of ", dist_c," feet is ", observed_tc_dist_diff$observed_diff," [mg/L]. Bootstrapping analysis yielded a P-value of ", P_tc_dist_diff)
 ```
 
-Look at the probability that there is a linear relationship between all Inorganic Nitrogen samples with respect to DISTANCE from stream bank:
+Look at the probability that there is a linear relationship between all Total Carbon samples with respect to DISTANCE from stream bank:
 
 Function for resampling and fitting a linear relationship to the data
 ```{r}
@@ -179,7 +346,7 @@ resampleAndFit_inorgn_dist=function(thisStreamData){
   #within the function, streamData does not exist, but thisStreamData does
   
   #resample the response variable with replace = true
-  thisStreamData$resampledResponse=sample(thisStreamData$Inorg.N,replace=T)
+  thisStreamData$resampledResponse=sample(thisStreamData$Total.C,replace=T)
   
   #fit a lm to the resampled dataset, save it as resampleFit
   resampleFit_inorgn_dist=lm(thisStreamData$resampledResponse~thisStreamData$Distance)
@@ -192,29 +359,30 @@ resampleAndFit_inorgn_dist=function(thisStreamData){
  return(resampleFit_inorgn_dist$coefficients[[2]])
 }
 
-```
+#Replicate and store
+resampledSlopes_inorgn_dist=replicate(num_replications,resampleAndFit_inorgn_dist(streamData))
+ 
+#Calculate observed slope of TC vs. distance
+observedFit_totc_dist=lm(streamData$Total.C~streamData$Distance)
 
-Resample the random slopes XXX times
-```{r}
-resampledSlopes_inorgn_dist=replicate(100,resampleAndFit_inorgn_dist(streamData))
+#P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
+P_tc_slope_dist <- mean(resampledSlopes_inorgn_dist > observedFit_totc_dist$coefficients[[2]])
+
+message("A linear fit of Total Carbon vs. Distance from the wetted bank yielded a slope of ", observedFit_totc_dist$coefficients[[2]]," mg/L/ft. Bootstrapping analysis yielded a P-value of ", P_tc_slope_dist, " that the slope is greater than or equal to the observed slope")
+
+#plot linear fits
+ggplot(streamData, aes(x= Distance, y = Total.C, color = Type)) +
+  geom_point() + 
+  geom_smooth(method = 'lm')
 ```
 
 Look at the distribution of the resampled slopes:
 ```{r}
 hist(resampledSlopes_inorgn_dist)
 ```
-Check that the resampledSlopes are close to 0.If it's not, something is wrong
-```{r}
-mean(resampledSlopes_inorgn_dist)
-```
+Analyze Elevation vs. Concentration Data:
 
-P-value that that there is a linear relationship between Total N and distance from the stream channel with a slope of
-```{r}
-mean(resampledSlopes_inorgn_dist> 0.2)
-```
-
-
-Look at the probability that there is a linear relationship between all Total Nitrogen samples with resepect to Relative Elevation above the WSE:
+Look at the probability that there is a linear relationship between all Total Nitrogen samples with respect to Relative Elevation above the Thalweg:
 
 function for resampling and fitting the data
 ```{r}
@@ -235,62 +403,69 @@ resampleAndFit_totn_Elev=function(thisStreamData){
  return(resampleFit_totn_Elev$coefficients[[2]])
 }
 
-```
+#resample and store
+resampledSlopes_totn_Elev=replicate(num_replications,resampleAndFit_totn_Elev(streamData))
 
-```{r}
-resampledSlopes_totn_Elev=replicate(100,resampleAndFit_totn_Elev(streamData))
+#Calculate Observed Slope of TN vs. Elev.
+observedFit_totn_elev = lm(streamData$Total.N~streamData$Relative.Elev.)
+
+#P-value that that there is a linear relationship between Total N and Relative Elevation above the Thalweg
+P_tn_slope_elev <- mean(resampledSlopes_totn_Elev > observedFit_totn_elev$coefficients[[2]])
+
+message("A linear fit of Total Nitrogen vs. Elevation from the wetted bank yielded a slope of ", observedFit_totn_elev$coefficients[[2]]," mg/L/ft. Bootstrapping analysis yielded a P-value of ", P_tn_slope_elev, " that the slope is greater than or equal to the observed slope")
+
+#plot linear fit
+ggplot(streamData, aes(x= Distance, y = Relative.Elev., color = Type)) +
+  geom_point() + 
+  geom_smooth(method = 'lm')
 ```
 
 ```{r}
 hist(resampledSlopes_totn_Elev)
 ```
 
-```{r}
-mean(resampledSlopes_totn_Elev)
-```
-Find Probability of linear realation btw nutrients and elevation with a slipe of XXX
-```{r}
-mean(resampledSlopes_totn_Elev> 0.2)
-```
-
-Look at the probability that there is a linear relationship between all Inorganic Nitrogen samples with respect to Relative Elevation above the WSE:
+Look at the probability that there is a linear relationship between all Total Carbon samples with respect to Relative Elevation above the Thalweg:
 
 function for resampling and fitting the data
 ```{r}
-resampleAndFit_inorgn_Elev=function(thisStreamData){
+resampleAndFit_tc_Elev=function(thisStreamData){
   #within the function, streamData does not exist, but thisStreamData does
   
   #resample the response variable with replace = true
-  thisStreamData$resampledResponse=sample(thisStreamData$Inorg.N,replace=T)
+  thisStreamData$resampledResponse=sample(thisStreamData$Total.C,replace=T)
   
   #fit a lm to the resampled dataset, save it as resampleFit
-  resampleFit_inorgn_Elev=lm(thisStreamData$resampledResponse~thisStreamData$Relative.Elev.)
+  resampleFit_tc_Elev=lm(thisStreamData$resampledResponse~thisStreamData$Relative.Elev.)
   
   #points or fitted lines representing the resampled data can be added to the plot by uncommenting out these lines:
   #points(resampledResponse~thisStreamData$Distance,pch=2)
   #abline(resampleFit)
   
   #return the slope coefficient
- return(resampleFit_inorgn_Elev$coefficients[[2]])
+ return(resampleFit_tc_Elev$coefficients[[2]])
 }
 
+#replicate and store
+resampledSlopes_tc_Elev = replicate(num_replications,resampleAndFit_tc_Elev(streamData))
+
+#Calculate Observed Slope of TN vs. Elev.
+observedFit_tc_elev = lm(streamData$Total.C~streamData$Relative.Elev.)
+
+#P-value that that there is a linear relationship between Total C and Relative Elevation above the Thalweg
+P_tc_slope_elev <- mean(resampledSlopes_tc_Elev > observedFit_tc_elev$coefficients[[2]])
+
+message("A linear fit of Total Carbon vs. Elevation from the wetted bank yielded a slope of ", observedFit_tc_elev$coefficients[[2]]," mg/L/ft. Bootstrapping analysis yielded a P-value of ", P_tc_slope_elev, " that the slope is greater than or equal to the observed slope")
+
+#plot linear fit
+ggplot(streamData, aes(x= Distance, y = Total.C, color = Type)) +
+  geom_point() + 
+  geom_smooth(method = 'lm')
 ```
 
 ```{r}
-resampledSlopes_inorgn_Elev=replicate(100,resampleAndFit_inorgn_Elev(streamData))
+hist(resampledSlopes_tc_Elev)
 ```
-
-```{r}
-hist(resampledSlopes_inorgn_Elev)
-```
-
-```{r}
-mean(resampledSlopes_inorgn_Elev)
-```
-```{r}
-mean(resampledSlopes_inorgn_Elev> 0.2)
-```
-
+Analyze Elevation vs. Treatment:
 
 Look at the probability that there is a difference between the average elevation above the Thalweg for the two treatments:
 ```{r}
@@ -313,10 +488,25 @@ resampled_avgelev_diff <- function(thisStreamData) {
   
   return(diff_data$avg_elev_diff[1])
 }
-# Replicate the function and store the differences
-num_replications <- 10000  # Change this to the desired number of replications
 
+#replicate and store
 resampled_elev_differences <- replicate(num_replications, resampled_avgelev_diff(streamData))
+
+#Calculate the observed average elevation difference for the two treamtments
+observed_elev_diff <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_elev = mean(Relative.Elev.)) %>%
+  summarize(observed_diff = diff(avg_elev))
+
+#Find Probability of differences greater than or equal too observed_elev_diff
+P_avg_elev_diff <- mean(resampled_elev_differences > observed_elev_diff$observed_diff)
+
+message("The average relative elevation of surveyed locations without channel spanning structures is ", observed_elev_diff, " feet higher than the average relative elevation of surveyed locations with channel spanning structures. Bootstrapping analysis yielded a low P-value of " , P_avg_elev_diff,  " showing that this observed difference is statistically significant.")
+
+#Create a df showing average relative elevations for the two treatments
+Avg_elev <- streamData %>%
+  group_by(Type) %>%
+  summarize(avg_elev = mean(Relative.Elev.))
 ```
 
 Create distribution of Average Elev. Differences (should be approximately normal)
@@ -324,25 +514,10 @@ Create distribution of Average Elev. Differences (should be approximately normal
 hist(resampled_elev_differences)
 ```
 
-Find Probability of differences greater than or equal too observed_elev_diff
-```{r}
-observed_elev_diff <- streamData %>%
-  group_by(Type) %>%
-  summarize(avg_elev = mean(Relative.Elev.)) %>%
-  summarize(observed_elev_diff = diff(avg_elev))
-
-P_avg_elev_diff <- mean(resampled_elev_differences > observed_elev_diff$observed_elev_diff)
-
-message("The average relative elevation of surveyed locations without channel spanning structures is ", observed_elev_diff$observed_elev_diff, " feet higher than the average relative elevation of surveyed locations with channel spanning structures. Bootstrapping analysis yielded a low P-value of " , P_avg_elev_diff,  " showing that this observed difference is statistically significant.")
-
-Avg_elev <- streamData %>%
-  group_by(Type) %>%
-  summarize(avg_elev = mean(Relative.Elev.)) 
-```
 Find Probability of differences greater than or equal too observed_elev_diff for specific distances
 ```{r}
 #Specify distance as inc
-inc <- 7.5
+inc <- 2.5
 
 resampled_dist_elev_diff <- function(thisStreamData) {
  thisStreamData %>% 
@@ -352,10 +527,10 @@ resampled_dist_elev_diff <- function(thisStreamData) {
   thisStreamData$resampled_elev <- sample(thisStreamData$Relative.Elev., replace = TRUE)
   
   # Create a new data frame to store the resampled results
-  resampled_elev_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_elev)
+  resampled_single_elev_data <- data.frame(Type = thisStreamData$Type, resampledResponse = thisStreamData$resampled_elev)
   
   # Calculate the average elevation above the WSE for each treatment type in the resampled data
-  summed_data <- resampled_elev_data %>%
+  summed_data <- resampled_single_elev_data %>%
     group_by(Type) %>%
     summarize(avg_elev = mean(resampledResponse))
   
@@ -365,8 +540,6 @@ resampled_dist_elev_diff <- function(thisStreamData) {
   
   return(diff_data$avg_elev_diff[1])
 }
-# Replicate the function and store the differences
-num_replications <- 1000  # Change this to the desired number of replications
 
 resampled_single_elev_diff <- replicate(num_replications, resampled_dist_elev_diff(streamData))
 
@@ -379,4 +552,11 @@ observed_single_elev_diff <- streamData %>%
 
 P_avg_single_elev_diff <- mean(resampled_single_elev_diff > observed_single_elev_diff$observed_diff)
 
+message("The average relative elevation " , inc, " feet from the wetted bank is ", observed_single_elev_diff$observed_diff, " feet higher/lower at NCSS sites vs CSS sites. Bootstrapping analysis yielded a P-value of ", P_avg_elev_diff)
+
 ```
+
+```{r}
+hist(resampled_single_elev_diff)
+```
+
